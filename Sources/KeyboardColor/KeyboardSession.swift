@@ -71,7 +71,7 @@ final class KeyboardSession: @unchecked Sendable {
             case .success(let response):
                 if let level = RazerReport.brightness(from: response) {
                     brightness = level
-                    detail = "Read backlight brightness \(level) of 255 from the keyboard."
+                    detail = "Read brightness from the keyboard."
                 } else {
                     write = .notApplied
                     detail = "The keyboard answered, but the brightness byte was missing."
@@ -125,7 +125,7 @@ final class KeyboardSession: @unchecked Sendable {
             write: .applied,
             productName: productName,
             brightness: brightness,
-            detail: "Sent the lighting report and brightness \(brightness) of 255."
+            detail: "Sent to the keyboard."
         )
     }
 
@@ -136,7 +136,7 @@ final class KeyboardSession: @unchecked Sendable {
         defer { lock.unlock() }
 
         if let device, featureLength(device) >= RazerReport.featureLength {
-            return (.connected, "Lighting report is open.")
+            return (.connected, "Connected to \(productName).")
         }
 
         let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
@@ -160,29 +160,28 @@ final class KeyboardSession: @unchecked Sendable {
 
         guard let device = lighting.first else {
             if opened == kIOReturnNotPermitted {
-                return (.blocked, "macOS blocked the lighting report. Input Monitoring can hide the keyboard from this window even while the keys still type.")
+                return (.blocked, "macOS blocked lighting control. Input Monitoring can hide the keyboard from this window even while the keys still type.")
             }
-            let seen = devices.map { describe($0) }.joined(separator: "; ")
-            if seen.isEmpty {
+            if devices.isEmpty {
                 return (.notFound, "No Razer Ornata V3 X is on USB. A hub that is asleep can look the same as an unplugged keyboard.")
             }
-            return (.notFound, "The keyboard is on USB, but none of its reports are the 90-byte lighting report. Saw \(seen).")
+            return (.notFound, "The keyboard is plugged in, but its lighting control did not appear.")
         }
 
         let deviceOpen = IOHIDDeviceOpen(device, IOOptionBits(kIOHIDOptionsTypeNone))
         // Exclusive access means the system already holds the device. Reports can still be sent.
         if deviceOpen != kIOReturnSuccess && deviceOpen != kIOReturnExclusiveAccess {
             if deviceOpen == kIOReturnNotPermitted {
-                return (.blocked, "macOS blocked the lighting report. Input Monitoring can hide the keyboard from this window even while the keys still type.")
+                return (.blocked, "macOS blocked lighting control. Input Monitoring can hide the keyboard from this window even while the keys still type.")
             }
-            return (.notFound, "The lighting report would not open (\(hex(deviceOpen))).")
+            return (.notFound, "The lighting control would not open.")
         }
 
         self.device = device
         if let name = IOHIDDeviceGetProperty(device, kIOHIDProductKey as CFString) as? String, !name.isEmpty {
             productName = name
         }
-        return (.connected, "Opened the \(featureLength(device))-byte lighting report on \(productName).")
+        return (.connected, "Connected to \(productName).")
     }
 
     /// Writes the report, waits, then reads it back. The board sometimes answers busy, so this tries five times.
@@ -191,14 +190,14 @@ final class KeyboardSession: @unchecked Sendable {
         let device = self.device
         lock.unlock()
         guard let device else {
-            return .failure(ReportError(message: "The lighting report is not open."))
+            return .failure(ReportError(message: "The keyboard is not connected."))
         }
 
         var last = "The keyboard did not accept the lighting report."
         for _ in 0..<5 {
             let sent = setFeature(device, request)
             if sent != kIOReturnSuccess {
-                last = "The lighting report was not sent (\(hex(sent)))."
+                last = "The command was not sent (\(hex(sent)))."
                 usleep(10_000)
                 continue
             }
@@ -241,7 +240,7 @@ final class KeyboardSession: @unchecked Sendable {
             return IOHIDDeviceGetReport(device, kIOHIDReportTypeFeature, 0, base, &length)
         }
         if code != kIOReturnSuccess {
-            return .failure(ReportError(message: "The keyboard did not return the lighting report (\(hex(code)))."))
+            return .failure(ReportError(message: "The keyboard did not answer (\(hex(code)))."))
         }
         return .success(Array(buffer.prefix(length)))
     }
@@ -266,13 +265,6 @@ final class KeyboardSession: @unchecked Sendable {
         let usage = (IOHIDDeviceGetProperty(device, kIOHIDPrimaryUsageKey as CFString) as? NSNumber)?.intValue ?? 0
         if page == 1 && usage == 2 { return 0 }
         return 1
-    }
-
-    private func describe(_ device: IOHIDDevice) -> String {
-        let page = (IOHIDDeviceGetProperty(device, kIOHIDPrimaryUsagePageKey as CFString) as? NSNumber)?.intValue ?? -1
-        let usage = (IOHIDDeviceGetProperty(device, kIOHIDPrimaryUsageKey as CFString) as? NSNumber)?.intValue ?? -1
-        let product = (IOHIDDeviceGetProperty(device, kIOHIDProductIDKey as CFString) as? NSNumber)?.intValue ?? -1
-        return String(format: "pid 0x%04X usage %d/%d feature %d", product, page, usage, featureLength(device))
     }
 
     private func hex(_ code: IOReturn) -> String {
