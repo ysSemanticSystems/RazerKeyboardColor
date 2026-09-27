@@ -1,0 +1,11 @@
+id = "razer-keyboard-color"
+title = "Keyboard color"
+group = "Studios"
+summary = "Sets the color and brightness of the Razer Ornata V3 X."
+cwd = "/Users/ye/Documents/GitHub/RazerKeyboardColor"
+start = ["/bin/zsh", "/Users/ye/Documents/GitHub/RazerKeyboardColor/run.sh"]
+stop = []
+exclusive = []
+data = "none"
+mode = "child"
+check = ["pgrep", "-x", "KeyboardColor"]
