@@ -16,6 +16,9 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "KeyboardColor",
+            resources: [
+                .copy("Resources/AppIcon.icns"),
+            ],
             linkerSettings: [
                 .linkedFramework("IOKit"),
                 .linkedFramework("AppKit"),

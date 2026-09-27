@@ -1,5 +1,9 @@
 # Keyboard color for the Razer Ornata V3 X
 
+<p align="center">
+  <img src="Assets/AppIcon.png" alt="Razer Color Manager app icon: a compact keyboard with one green backlight zone." width="160">
+</p>
+
 A MacOS application which sets the RGB color, brightness, and lighting effects of the Razer Ornata V3 X. The keyboard lights as one zone. Solid, Breathing, Spectrum, and Off. No Razer Synapse.
 
 <p align="center">
@@ -10,7 +14,7 @@ A MacOS application which sets the RGB color, brightness, and lighting effects o
 </p>
 
 <p align="center">
-  <img src="RazerKeyboardColorPreview.png" alt="Keyboard color, a macOS window for the Razer Ornata V3 X RGB backlight. Connected, waiting to send, with color, intensity, Solid, Breathing, Spectrum, and Off." width="560">
+  <img src="Assets/hero.png" alt="Razer Color Manager: a full-size backlit keyboard and the Mac window that sets color, intensity, Solid, Breathing, Spectrum, and Off." width="800">
 </p>
 
 Use this instead of installing half a gigabyte of spyware.
@@ -22,6 +26,14 @@ Use this instead of installing half a gigabyte of spyware.
 ```
 
 That builds `KeyboardColor` and opens the window. It does not listen on a port. It talks only to the Razer lighting. It doesn't need every permission under the f***ing sun.
+
+## Install
+
+```sh
+./package.sh
+```
+
+That writes `dist/RazerColorManager.dmg`. Open it and drag Razer Color Manager onto Applications.
 
 ## What it sets
 

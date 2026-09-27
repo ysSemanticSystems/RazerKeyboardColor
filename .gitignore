@@ -33,3 +33,6 @@ credentials.json
 
 # Machine-specific. Not part of the public project.
 ys.service.toml
+
+# Built disk images and staging folders.
+dist/

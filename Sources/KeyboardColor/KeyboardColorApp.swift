@@ -3,7 +3,7 @@
 //  KeyboardColor
 //
 //  Opens the Keyboard color window, or answers a command-line check and exits.
-//  The process stays a normal app so the window can come forward and accept a stop signal.
+//  The process stays a normal app, loads AppIcon.icns for the Dock, and accepts a stop signal.
 //
 
 import AppKit
@@ -29,10 +29,25 @@ struct KeyboardColorApp: App {
             Darwin.exit(0)
         }
         NSApplication.shared.setActivationPolicy(.regular)
+        applyDockIcon()
+    }
+
+    /// Prefer the app bundle so a copy in Applications still shows the mark. Bundle.module is the SwiftPM build.
+    private func applyDockIcon() {
+        let urls = [
+            Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+            Bundle.module.url(forResource: "AppIcon", withExtension: "icns"),
+        ]
+        for url in urls {
+            if let url, let icon = NSImage(contentsOf: url) {
+                NSApplication.shared.applicationIconImage = icon
+                return
+            }
+        }
     }
 
     var body: some Scene {
-        WindowGroup("Keyboard color") {
+        WindowGroup("Razer Color Manager") {
             ContentView()
         }
         .windowResizability(.contentSize)

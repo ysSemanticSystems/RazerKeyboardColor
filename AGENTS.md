@@ -1,6 +1,6 @@
 # Keyboard color
 
-Mac window for the Razer Ornata V3 X backlight. Run it with `./run.sh`. Check packets with the binary's `--check`.
+Mac window for the Razer Ornata V3 X backlight. Run it with `./run.sh`. Write a drag-to-Applications disk image with `./package.sh`. Check packets with the binary's `--check`.
 
 The lighting report is 90 bytes. Open it without seizing the keyboard interface, or typing stops.
 
