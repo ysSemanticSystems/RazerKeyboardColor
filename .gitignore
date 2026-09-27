@@ -30,3 +30,6 @@ DerivedData/
 !.env.example
 *.pem
 credentials.json
+
+# Machine-specific. Not part of the public project.
+ys.service.toml

@@ -5,10 +5,8 @@ alwaysApply: true
 
 # Keyboard color
 
-This window sets the color and brightness of the Razer Ornata V3 X as one lighting zone. It sends the extended matrix reports the keyboard already accepts. It does not grab keystrokes.
+This window sets the color and brightness of the Razer Ornata V3 X as one lighting zone. Lighting commands use the 90-byte feature report. Open that interface without seizing it, or the keys stop typing.
 
-The check is `swift build --disable-sandbox`, then run the binary with `--check`.
+Check packets with the built binary's `--check` after `swift build --disable-sandbox`.
 
-This runs on the M4 Pro Mac mini with 24 GB unified memory. One heavy model at a time. New database files go on the internal APFS volume.
-
-Do not invent a port. This program does not listen.
+Committed text describes the program. It does not name a machine, a filesystem path, or instructions copied from another repository.

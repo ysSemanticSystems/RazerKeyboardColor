@@ -1,3 +1,11 @@
+//
+//  KeyboardSession.swift
+//  KeyboardColor
+//
+//  Finds the Ornata lighting interface and exchanges 90-byte feature reports with it.
+//  The interface is opened without seizing it, so keystrokes keep going to the system.
+//
+
 import Foundation
 import IOKit
 import IOKit.hid
@@ -32,6 +40,7 @@ final class KeyboardSession: @unchecked Sendable {
     private var device: IOHIDDevice?
     private var productName = "Razer Ornata V3 X"
 
+    /// Reads brightness and prints the link state. Used by `--probe`. Closes the device before returning.
     func probe() -> String {
         let found = openLightingDevice()
         var lines = ["link \(found.link)", "detail \(found.detail)", "product \(productName)"]
@@ -51,6 +60,7 @@ final class KeyboardSession: @unchecked Sendable {
         return lines.joined(separator: "\n") + "\n"
     }
 
+    /// Opens the lighting report and reads brightness. Does not send a color.
     func refresh() -> KeyboardSnapshot {
         let found = openLightingDevice()
         var brightness: UInt8?
@@ -80,6 +90,7 @@ final class KeyboardSession: @unchecked Sendable {
         )
     }
 
+    /// Sends the effect report, then the brightness register. Brightness is a second command.
     func apply(effect report: [UInt8], brightness: UInt8) -> KeyboardSnapshot {
         let found = openLightingDevice()
         guard found.link == .connected else {
@@ -118,6 +129,8 @@ final class KeyboardSession: @unchecked Sendable {
         )
     }
 
+    /// Matches vendor and product, then keeps the collection whose feature report is 90 bytes.
+    /// `kIOHIDOptionsTypeNone` shares the device with the system. Seizing it would stop typing.
     private func openLightingDevice() -> (link: KeyboardLink, detail: String) {
         lock.lock()
         defer { lock.unlock() }
@@ -137,6 +150,7 @@ final class KeyboardSession: @unchecked Sendable {
         IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
         let opened = IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
         self.manager = manager
+        // Matching callbacks land on the run loop. A short turn is enough to see the collections.
         CFRunLoopRunInMode(CFRunLoopMode.defaultMode, 0.2, false)
 
         let devices = copyDevices(manager)
@@ -156,6 +170,7 @@ final class KeyboardSession: @unchecked Sendable {
         }
 
         let deviceOpen = IOHIDDeviceOpen(device, IOOptionBits(kIOHIDOptionsTypeNone))
+        // Exclusive access means the system already holds the device. Reports can still be sent.
         if deviceOpen != kIOReturnSuccess && deviceOpen != kIOReturnExclusiveAccess {
             if deviceOpen == kIOReturnNotPermitted {
                 return (.blocked, "macOS blocked the lighting report. Input Monitoring can hide the keyboard from this window even while the keys still type.")
@@ -170,6 +185,7 @@ final class KeyboardSession: @unchecked Sendable {
         return (.connected, "Opened the \(featureLength(device))-byte lighting report on \(productName).")
     }
 
+    /// Writes the report, waits, then reads it back. The board sometimes answers busy, so this tries five times.
     private func exchange(_ request: [UInt8]) -> Result<[UInt8], ReportError> {
         lock.lock()
         let device = self.device
@@ -189,6 +205,7 @@ final class KeyboardSession: @unchecked Sendable {
             usleep(1_000)
             switch getFeature(device) {
             case .success(let response):
+                // Class and command must echo. Status 0x01 (busy) still means the board took the command.
                 if response.count >= 8,
                    response[6] == request[6],
                    response[7] == request[7],
@@ -204,6 +221,7 @@ final class KeyboardSession: @unchecked Sendable {
         return .failure(ReportError(message: last))
     }
 
+    /// Report id is 0, so the 90 payload bytes are the whole feature report.
     private func setFeature(_ device: IOHIDDevice, _ request: [UInt8]) -> IOReturn {
         request.withUnsafeBytes { raw in
             guard let base = raw.bindMemory(to: UInt8.self).baseAddress else {
@@ -241,6 +259,8 @@ final class KeyboardSession: @unchecked Sendable {
         (IOHIDDeviceGetProperty(device, kIOHIDMaxFeatureReportSizeKey as CFString) as? NSNumber)?.intValue ?? 0
     }
 
+    /// The lighting collection presents as a pointer (usage page 1, usage 2) and carries the 90-byte feature.
+    /// Keyboard collections on the same device do not. Prefer the pointer collection when several match.
     private func usageRank(_ device: IOHIDDevice) -> Int {
         let page = (IOHIDDeviceGetProperty(device, kIOHIDPrimaryUsagePageKey as CFString) as? NSNumber)?.intValue ?? 0
         let usage = (IOHIDDeviceGetProperty(device, kIOHIDPrimaryUsageKey as CFString) as? NSNumber)?.intValue ?? 0

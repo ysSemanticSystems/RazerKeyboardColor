@@ -1,0 +1,12 @@
+---
+description: File headers and comments in Keyboard color
+alwaysApply: true
+---
+
+# Source comments
+
+Every Swift file and shell script starts with a header. The header names the file, names the module KeyboardColor, and states the file's responsibility in two sentences. `Package.swift` keeps the Swift tools version on line 1 and puts the header under it. The header has no personal name, machine name, path, or copyright line.
+
+Comment a choice that would be wrong if inverted: report layout, checksum range, which HID interface is the lighting report, why the interface is opened without seizing it, and why a refresh must not send a color. Do not comment a line that only restates its name.
+
+Public files stay limited to the program. Do not add filesystem paths, hardware inventory, or editor instructions from anywhere else.

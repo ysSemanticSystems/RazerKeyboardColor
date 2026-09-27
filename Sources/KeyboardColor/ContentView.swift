@@ -1,6 +1,15 @@
+//
+//  ContentView.swift
+//  KeyboardColor
+//
+//  Draws the color, intensity, and effect controls and sends them to the keyboard.
+//  A refresh reads brightness only. It must not write a color, or opening the window would change the lights.
+//
+
 import AppKit
 import SwiftUI
 
+/// Effects the Ornata V3 X backlight accepts. Wave and per-key color are not on this board.
 enum LightEffect: String, CaseIterable, Identifiable {
     case solid
     case breathing
@@ -45,7 +54,9 @@ final class KeyboardModel: ObservableObject {
     @Published var detail = "Looking for the keyboard."
 
     private let session = KeyboardSession()
+    /// True while refresh is writing published values, so those writes do not send a report.
     private var suppress = false
+    /// False until the open-time brightness read has settled. The first slider update is that read.
     private var armApply = false
     private var applyTask: Task<Void, Never>?
 
@@ -74,6 +85,7 @@ final class KeyboardModel: ObservableObject {
             write = snapshot.write
         }
         suppress = false
+        // onChange from the brightness read runs before this hop, so it cannot send a color.
         Task { @MainActor in
             armApply = true
         }
@@ -101,6 +113,7 @@ final class KeyboardModel: ObservableObject {
         scheduleApply()
     }
 
+    /// Coalesces slider and color-well updates. The board answers one report at a time.
     private func scheduleApply() {
         guard !suppress else { return }
         applyTask?.cancel()
@@ -131,6 +144,7 @@ final class KeyboardModel: ObservableObject {
         }
     }
 
+    /// The well can be in a display color space. The keyboard wants 8-bit sRGB.
     private static func bytes(from color: Color) -> (UInt8, UInt8, UInt8) {
         let ns = NSColor(color).usingColorSpace(.sRGB) ?? .white
         func byte(_ value: CGFloat) -> UInt8 {
@@ -198,6 +212,7 @@ struct ContentView: View {
         }
     }
 
+    /// Scales the chosen color by the slider. This is the outgoing command, not a picture of the keys.
     private var preview: some View {
         RoundedRectangle(cornerRadius: 12)
             .fill(model.color.opacity(model.brightness / 255))
@@ -303,6 +318,7 @@ struct ContentView: View {
     }
 }
 
+/// Words carry the state. Color repeats the word and is never the only signal.
 extension KeyboardLink {
     var title: String {
         switch self {

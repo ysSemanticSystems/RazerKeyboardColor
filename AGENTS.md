@@ -1,5 +1,7 @@
 # Keyboard color
 
-Mac window for the Razer Ornata V3 X backlight. Run it with `./run.sh`. Check the lighting packets with the built binary's `--check`. The command line tools on this Mac do not link Swift Testing.
+Mac window for the Razer Ornata V3 X backlight. Run it with `./run.sh`. Check packets with the binary's `--check`.
 
-The lighting report is 90 bytes on the Ornata interface. Do not seize the keyboard collection, or typing stops. The always-on rule is `.cursor/rules/keyboard-color.mdc`.
+The lighting report is 90 bytes. Open it without seizing the keyboard interface, or typing stops.
+
+Swift sources and `run.sh` start with a file header. Comment protocol and interface choices. The rules are `.cursor/rules/keyboard-color.mdc` and `.cursor/rules/source-comments.mdc`.

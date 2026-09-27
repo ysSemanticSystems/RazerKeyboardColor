@@ -1,3 +1,11 @@
+//
+//  Tips.swift
+//  KeyboardColor
+//
+//  Holds the sentence each control speaks on hover and to VoiceOver.
+//  The sentence names the action, what it reads, and the failure that sentence can hide.
+//
+
 import Foundation
 
 enum Tips {
