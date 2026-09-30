@@ -9,6 +9,7 @@
 import Foundation
 import IOKit
 import IOKit.hid
+import IOKit.hidsystem
 
 enum KeyboardLink {
     case connected
@@ -39,10 +40,13 @@ final class KeyboardSession: @unchecked Sendable {
     private var manager: IOHIDManager?
     private var device: IOHIDDevice?
     private var productName = "Razer Ornata V3 X"
+    /// True after this process has called `IOHIDRequestAccess`. A second call would stack a dialog or ask when macOS will not show one.
+    private var askedThisLaunch = false
 
     /// Reads brightness and prints the link state. Used by `--probe`. Closes the device before returning.
+    /// Does not request Input Monitoring. A modal prompt here would stall the check.
     func probe() -> String {
-        let found = openLightingDevice()
+        let found = openLightingDevice(requestsAccess: false)
         var lines = ["link \(found.link)", "detail \(found.detail)", "product \(productName)"]
         if found.link == .connected {
             switch exchange(RazerReport.getBrightness()) {
@@ -62,7 +66,7 @@ final class KeyboardSession: @unchecked Sendable {
 
     /// Opens the lighting report and reads brightness. Does not send a color.
     func refresh() -> KeyboardSnapshot {
-        let found = openLightingDevice()
+        let found = openLightingDevice(requestsAccess: true)
         var brightness: UInt8?
         var write: KeyboardWrite = .waiting
         var detail = found.detail
@@ -92,7 +96,7 @@ final class KeyboardSession: @unchecked Sendable {
 
     /// Sends the effect report, then the brightness register. Brightness is a second command.
     func apply(effect report: [UInt8], brightness: UInt8) -> KeyboardSnapshot {
-        let found = openLightingDevice()
+        let found = openLightingDevice(requestsAccess: true)
         guard found.link == .connected else {
             return KeyboardSnapshot(
                 link: found.link,
@@ -131,7 +135,10 @@ final class KeyboardSession: @unchecked Sendable {
 
     /// Matches vendor and product, then keeps the collection whose feature report is 90 bytes.
     /// `kIOHIDOptionsTypeNone` shares the device with the system. Seizing it would stop typing.
-    private func openLightingDevice() -> (link: KeyboardLink, detail: String) {
+    private func openLightingDevice(requestsAccess: Bool) -> (link: KeyboardLink, detail: String) {
+        guard mayOpenLighting(requestsAccess: requestsAccess) else {
+            return (.blocked, LightingPermission.blockedDetail)
+        }
         lock.lock()
         defer { lock.unlock() }
 
@@ -160,7 +167,7 @@ final class KeyboardSession: @unchecked Sendable {
 
         guard let device = lighting.first else {
             if opened == kIOReturnNotPermitted {
-                return (.blocked, "macOS blocked lighting control. Input Monitoring can hide the keyboard from this window even while the keys still type.")
+                return (.blocked, LightingPermission.blockedDetail)
             }
             if devices.isEmpty {
                 return (.notFound, "No Razer Ornata V3 X is on USB. A hub that is asleep can look the same as an unplugged keyboard.")
@@ -172,7 +179,7 @@ final class KeyboardSession: @unchecked Sendable {
         // Exclusive access means the system already holds the device. Reports can still be sent.
         if deviceOpen != kIOReturnSuccess && deviceOpen != kIOReturnExclusiveAccess {
             if deviceOpen == kIOReturnNotPermitted {
-                return (.blocked, "macOS blocked lighting control. Input Monitoring can hide the keyboard from this window even while the keys still type.")
+                return (.blocked, LightingPermission.blockedDetail)
             }
             return (.notFound, "The lighting control would not open.")
         }
@@ -182,6 +189,36 @@ final class KeyboardSession: @unchecked Sendable {
             productName = name
         }
         return (.connected, "Connected to \(productName).")
+    }
+
+    /// A denied choice does not show the system dialog again, so this must not call `IOHIDRequestAccess` after denial.
+    /// The dialog is app-modal. Holding the device lock across it would deadlock a re-entrant refresh.
+    private func mayOpenLighting(requestsAccess: Bool) -> Bool {
+        let access = LightingPermission.listenAccess(IOHIDCheckAccess(kIOHIDRequestTypeListenEvent))
+        lock.lock()
+        let step = LightingPermission.step(
+            access: access,
+            askedThisLaunch: askedThisLaunch,
+            allowPrompt: requestsAccess
+        )
+        if step == .requestSystemPrompt {
+            askedThisLaunch = true
+        }
+        lock.unlock()
+
+        switch step {
+        case .openDevice:
+            return true
+        case .requestSystemPrompt:
+            if IOHIDRequestAccess(kIOHIDRequestTypeListenEvent) {
+                return true
+            }
+            close()
+            return false
+        case .showSettings:
+            close()
+            return false
+        }
     }
 
     /// Writes the report, waits, then reads it back. The board sometimes answers busy, so this tries five times.

@@ -146,6 +146,11 @@ final class KeyboardModel: ObservableObject {
         }
     }
 
+    func openInputMonitoring() {
+        if NSWorkspace.shared.open(LightingPermission.settingsURL) { return }
+        detail = LightingPermission.settingsDidNotOpen
+    }
+
     /// The board stores brightness as a byte. The slider is a percent, so 100% is 255 and 0% is 0.
     static func percent(from byte: UInt8) -> Double {
         (Double(byte) * 100 / 255).rounded()
@@ -200,15 +205,21 @@ struct ContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             header
-            preview
+            if model.link == .blocked {
+                blockedPanel
+            } else {
+                preview
+            }
             colorRow
             intensityRow
             effectRow
-            Text(model.detail)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityLabel(model.detail)
+            if model.link != .blocked {
+                Text(model.detail)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(model.detail)
+            }
         }
         .padding(24)
         .frame(width: 560)
@@ -224,9 +235,11 @@ struct ContentView: View {
                 .font(.title2.weight(.semibold))
             HStack(spacing: 12) {
                 statusWord(model.link.title, tint: model.link.tint, tip: model.link.tip)
-                statusWord(model.write.title, tint: model.write.tint, tip: model.write.tip)
-                if model.link == .connected, model.write == .applied {
-                    effectMark
+                if LightingPermission.showsWriteState(link: model.link) {
+                    statusWord(model.write.title, tint: model.write.tint, tip: model.write.tip)
+                    if model.link == .connected, model.write == .applied {
+                        effectMark
+                    }
                 }
                 Button("Look again") {
                     model.refresh()
@@ -234,6 +247,39 @@ struct ContentView: View {
                 .help(Tips.refresh)
                 .accessibilityHint(Tips.refresh)
             }
+        }
+    }
+
+    /// Replaces the color swatch. A gray "No keyboard" bar would hide that Input Monitoring is the reason the controls are off.
+    private var blockedPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Blocked", systemImage: "exclamationmark.triangle.fill")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.orange)
+                .labelStyle(.titleAndIcon)
+                .help(Tips.blocked)
+                .accessibilityLabel("Blocked")
+                .accessibilityHint(Tips.blocked)
+            Text(model.detail)
+                .font(.body)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button(LightingPermission.settingsButton) {
+                model.openInputMonitoring()
+            }
+            .buttonStyle(.borderedProminent)
+            .help(Tips.openInputMonitoring)
+            .accessibilityHint(Tips.openInputMonitoring)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.orange.opacity(0.14))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color.orange, lineWidth: 1)
         }
     }
 
@@ -329,12 +375,12 @@ struct ContentView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .disabled(model.link != .connected)
+        .disabled(!LightingPermission.lightingControlsEnabled(link: model.link))
     }
 
     private var colorNote: String {
         guard model.link == .connected else {
-            return "Unavailable until the keyboard is connected."
+            return LightingPermission.unavailableNote(link: model.link)
         }
         guard model.write == .applied else {
             return "Not sent. This is not the color on the keys."
@@ -355,10 +401,10 @@ struct ContentView: View {
                 Text("Intensity")
                     .font(.headline)
                 Spacer()
-                Text("\(Int(model.brightness.rounded()))%")
+                Text(intensityReadout)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
-                    .accessibilityLabel("\(Int(model.brightness.rounded())) percent")
+                    .accessibilityLabel(intensityReadoutLabel)
             }
             Slider(value: $model.brightness, in: 0...100, step: 1) {
                 Text("Intensity")
@@ -368,12 +414,27 @@ struct ContentView: View {
             .help(Tips.intensity)
             .accessibilityLabel("Intensity")
             .accessibilityHint(Tips.intensity)
-            .accessibilityValue("\(Int(model.brightness.rounded())) percent")
+            .accessibilityValue(intensityReadoutLabel)
             .onChange(of: model.brightness) { _, _ in
                 model.brightnessChanged()
             }
         }
-        .disabled(model.link != .connected)
+        .disabled(!LightingPermission.lightingControlsEnabled(link: model.link))
+    }
+
+    /// A percent before a successful read would claim a brightness the keyboard did not report.
+    private var intensityReadout: String {
+        guard LightingPermission.lightingControlsEnabled(link: model.link) else {
+            return "Unavailable"
+        }
+        return "\(Int(model.brightness.rounded()))%"
+    }
+
+    private var intensityReadoutLabel: String {
+        guard LightingPermission.lightingControlsEnabled(link: model.link) else {
+            return "Unavailable"
+        }
+        return "\(Int(model.brightness.rounded())) percent"
     }
 
     private var effectRow: some View {
@@ -391,7 +452,7 @@ struct ContentView: View {
                 }
             }
         }
-        .disabled(model.link != .connected)
+        .disabled(!LightingPermission.lightingControlsEnabled(link: model.link))
     }
 
     /// Shown only after a write succeeds. The keyboard never reports which effect is lit.

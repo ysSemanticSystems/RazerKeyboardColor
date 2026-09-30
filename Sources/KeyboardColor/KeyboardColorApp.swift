@@ -21,6 +21,7 @@ struct KeyboardColorApp: App {
         }
         if CommandLine.arguments.contains("--check") {
             RazerReport.check()
+            LightingPermission.check()
             FileHandle.standardOutput.write(Data("packet check passed\n".utf8))
             Darwin.exit(0)
         }

@@ -49,4 +49,4 @@ One lighting zone. Live updates. Look again reads brightness again and leaves a 
 
 The app opens the Ornata lighting interface through IOKit and leaves the keys to the system. The open is `openLightingDevice()` in [KeyboardSession.swift](Sources/KeyboardColor/KeyboardSession.swift). It uses `kIOHIDOptionsTypeNone`, so the keyboard stays shared with macOS. Seizing that interface would stop typing. The window does not send a color when it opens.
 
-If the window says **Blocked**, macOS refused that open (`kIOReturnNotPermitted`). The keys can still type.
+If the window says **Blocked**, Input Monitoring is off, so this window cannot change the backlight. The keys can still type. Open Input Monitoring, allow this app, then click Look again.
