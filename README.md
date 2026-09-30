@@ -1,13 +1,13 @@
 # Keyboard color for the Razer Ornata V3 X
 
-A macOS application that sets the RGB color, brightness, and lighting effects of the Razer Ornata V3 X. The keyboard lights as one zone: Solid, Breathing, Spectrum, and Off. No Razer Synapse.
-
 <p align="center">
   <a href="#requirements"><img src="https://img.shields.io/badge/macOS-14%2B-111111?logo=apple&logoColor=white" alt="Requires macOS 14 or later"></a>
   <a href="#requirements"><img src="https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white" alt="Built with Swift 6"></a>
   <a href="#what-it-controls"><img src="https://img.shields.io/badge/Razer-Ornata%20V3%20X-44D62C" alt="Made for the Razer Ornata V3 X"></a>
   <a href="#what-it-controls"><img src="https://img.shields.io/badge/RGB-backlight-0AA2C0" alt="RGB keyboard backlight"></a>
 </p>
+
+A macOS application that sets the RGB color, brightness, and lighting effects of the Razer Ornata V3 X. The keyboard lights as one zone: Solid, Breathing, Spectrum, and Off. No Razer Synapse.
 
 <p align="center">
   <img src="RazerKeyboardColorPreview.png" alt="Keyboard color window for the Razer Ornata V3 X: Connected, a green color well marked Not sent, intensity at 6%, and the effects Solid, Breathing, Spectrum, and Off." width="480">
