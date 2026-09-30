@@ -1,9 +1,5 @@
 # Keyboard color for the Razer Ornata V3 X
 
-<p align="center">
-  <img src="Assets/AppIcon.png" alt="Razer Color Manager app icon: a compact keyboard with one green backlight zone." width="160">
-</p>
-
 A MacOS application which sets the RGB color, brightness, and lighting effects of the Razer Ornata V3 X. The keyboard lights as one zone. Solid, Breathing, Spectrum, and Off. No Razer Synapse.
 
 <p align="center">
@@ -14,7 +10,7 @@ A MacOS application which sets the RGB color, brightness, and lighting effects o
 </p>
 
 <p align="center">
-  <img src="Assets/hero.png" alt="Razer Color Manager: a full-size backlit keyboard and the Mac window that sets color, intensity, Solid, Breathing, Spectrum, and Off." width="800">
+  <img src="RazerKeyboardColorPreview.png" alt="Keyboard color window for the Razer Ornata V3 X: Connected, a green color well marked Not sent, intensity at 6%, and the effects Solid, Breathing, Spectrum, and Off." width="480">
 </p>
 
 Use this instead of installing half a gigabyte of spyware.
